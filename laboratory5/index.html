@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Hunt</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f4;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    select, button {
+      padding: 8px;
+      font-size: 16px;
+    }
+    #gameArea {
+      width: 600px;
+      height: 400px;
+      background: white;
+      border: 2px solid #ccc;
+      position: relative;
+      overflow: hidden;
+    }
+    .square {
+      position: absolute;
+      cursor: pointer;
+    }
+    #stats {
+      margin-top: 20px;
+    }
+    #timer {
+      font-size: 18px;
+      margin-top: 10px;
+      color: #333;
+    }
+    #message {
+      font-size: 20px;
+      color: red;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pixel Hunt</h1>
+  <div class="controls">
+    <select id="difficulty">
+      <option value="">Choose difficulty</option>
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+    <select id="color">
+      <option value="">Choose color</option>
+      <option value="red">Red</option>
+      <option value="blue">Blue</option>
+      <option value="green">Green</option>
+      <option value="purple">Purple</option>
+    </select>
+    <button id="startBtn" disabled>Start</button>
+  </div>
+  <div id="gameArea"></div>
+  <div id="stats">Clicks: 0</div>
+  <div id="timer">Time left: 0.0s</div>
+  <div id="message"></div>
+
+  <script>
+    const difficultySelect = document.getElementById('difficulty');
+    const colorSelect = document.getElementById('color');
+    const startBtn = document.getElementById('startBtn');
+    const gameArea = document.getElementById('gameArea');
+    const stats = document.getElementById('stats');
+    const message = document.getElementById('message');
+    const timerDisplay = document.getElementById('timer');
+
+    let clickCount = 0;
+    let timeoutId = null;
+    let countdownInterval = null;
+    let isGameOver = false;
+
+    const settings = {
+      easy:    { size: 60, time: 2000 },
+      medium:  { size: 40, time: 1200 },
+      hard:    { size: 25, time: 700 }
+    };
+
+    difficultySelect.addEventListener('change', checkStartCondition);
+    colorSelect.addEventListener('change', checkStartCondition);
+
+    function checkStartCondition() {
+      startBtn.disabled = !difficultySelect.value;
+    }
+
+    startBtn.addEventListener('click', () => {
+      clickCount = 0;
+      stats.textContent = `Clicks: ${clickCount}`;
+      message.textContent = '';
+      timerDisplay.textContent = 'Time left: 0.0s';
+      isGameOver = false;
+      spawnSquare();
+    });
+
+    function gameOver() {
+      clearTimeout(timeoutId);
+      clearInterval(countdownInterval);
+      gameArea.innerHTML = '';
+      timerDisplay.textContent = 'Time left: 0.0s';
+      message.textContent = 'You lost! Too slow!';
+      isGameOver = true;
+    }
+
+    function spawnSquare() {
+      if (isGameOver) return;
+
+      const difficulty = difficultySelect.value;
+      const color = colorSelect.value || 'black';
+      const { size, time } = settings[difficulty];
+
+      const square = document.createElement('div');
+      square.classList.add('square');
+      square.style.width = `${size}px`;
+      square.style.height = `${size}px`;
+      square.style.backgroundColor = color;
+
+      const maxX = gameArea.clientWidth - size;
+      const maxY = gameArea.clientHeight - size;
+      const randomX = Math.random() * maxX;
+      const randomY = Math.random() * maxY;
+      square.style.left = `${randomX}px`;
+      square.style.top = `${randomY}px`;
+
+      square.addEventListener('click', () => {
+        if (isGameOver) return;
+        clickCount++;
+        stats.textContent = `Clicks: ${clickCount}`;
+        clearTimeout(timeoutId);
+        clearInterval(countdownInterval);
+        square.remove();
+        spawnSquare();
+      });
+
+      gameArea.innerHTML = '';
+      gameArea.appendChild(square);
+
+      let remaining = time / 1000;
+      timerDisplay.textContent = `Time left: ${remaining.toFixed(1)}s`;
+
+      countdownInterval = setInterval(() => {
+        remaining -= 0.1;
+        timerDisplay.textContent = `Time left: ${remaining.toFixed(1)}s`;
+        if (remaining <= 0) {
+          clearInterval(countdownInterval);
+        }
+      }, 100);
+
+      timeoutId = setTimeout(() => {
+        square.remove();
+        gameOver();
+      }, time);
+    }
+  </script>
+</body>
+</html>
